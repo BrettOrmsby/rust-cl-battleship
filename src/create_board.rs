@@ -49,11 +49,11 @@ pub fn start() -> GameBoard {
             render(&term, &ships);
             let key = term.read_key();
             match key {
-                Ok(Key::Char(' ')) => rotate_ship(&mut ships),
-                Ok(Key::ArrowUp) => move_ship_up(&mut ships),
-                Ok(Key::ArrowDown) => move_ship_down(&mut ships),
-                Ok(Key::ArrowLeft) => move_ship_left(&mut ships),
-                Ok(Key::ArrowRight) => move_ship_right(&mut ships),
+                Ok(Key::Char(' ')) => ships.last_mut().unwrap().rotate(),
+                Ok(Key::ArrowUp) => ships.last_mut().unwrap().move_up(),
+                Ok(Key::ArrowDown) => ships.last_mut().unwrap().move_down(),
+                Ok(Key::ArrowLeft) => ships.last_mut().unwrap().move_left(),
+                Ok(Key::ArrowRight) => ships.last_mut().unwrap().move_right(),
                 Ok(Key::Enter) => {
                     if let Some(last_ship) = ships.last() {
                         let does_collide = ships.iter().any(|ship| {
@@ -139,7 +139,7 @@ pub fn render(term: &Term, ships: &[Ship]) {
         .map(|i| {
             (0..10)
                 .map(|j| {
-                    if last_ship_points.contains(&&Point(j, i)) && ship_points.contains(&&Point(j, i))
+                    if last_ship_points.contains(&Point(j, i)) && ship_points.contains(&&Point(j, i))
                     {
                         Style::new().red()
                     } else if last_ship_points.contains(&Point(j, i)) {
@@ -162,96 +162,4 @@ pub fn render(term: &Term, ships: &[Ship]) {
     let grid = create_colored_grid(&coloured_grid);
     print_center(term, &grid);
     term.flush();
-}
-
-/// Rotates the last ship clockwise if possible
-fn rotate_ship(ships: &mut [Ship]) {
-    if let Some(last_ship) = ships.last() {
-        let new_direction = match last_ship.direction {
-            ShipDirection::Down => ShipDirection::Left,
-            ShipDirection::Left => ShipDirection::Up,
-            ShipDirection::Up => ShipDirection::Right,
-            ShipDirection::Right => ShipDirection::Down,
-        };
-        if Ship::can_exist(&last_ship.kind, last_ship.x, last_ship.y, &new_direction) {
-            if let Some(last_ship) = ships.last_mut() {
-                last_ship.direction = new_direction;
-                last_ship.reset_points();
-            }
-        }
-    }
-}
-
-/// Moves the last ship up if possible
-fn move_ship_up(ships: &mut [Ship]) {
-    if let Some(last_ship) = ships.last() {
-        if last_ship.y == 0 {
-            return;
-        }
-        if Ship::can_exist(
-            &last_ship.kind,
-            last_ship.x,
-            last_ship.y - 1,
-            &last_ship.direction,
-        ) {
-            if let Some(last_ship) = ships.last_mut() {
-                last_ship.y -= 1;
-                last_ship.reset_points();
-            }
-        }
-    }
-}
-
-/// Moves the last ship down if possible
-fn move_ship_down(ships: &mut [Ship]) {
-    if let Some(last_ship) = ships.last() {
-        if Ship::can_exist(
-            &last_ship.kind,
-            last_ship.x,
-            last_ship.y + 1,
-            &last_ship.direction,
-        ) {
-            if let Some(last_ship) = ships.last_mut() {
-                last_ship.y += 1;
-                last_ship.reset_points();
-            }
-        }
-    }
-}
-
-/// Moves the last ship left if possible
-fn move_ship_left(ships: &mut [Ship]) {
-    if let Some(last_ship) = ships.last() {
-        if last_ship.x == 0 {
-            return;
-        }
-        if Ship::can_exist(
-            &last_ship.kind,
-            last_ship.x - 1,
-            last_ship.y,
-            &last_ship.direction,
-        ) {
-            if let Some(last_ship) = ships.last_mut() {
-                last_ship.x -= 1;
-                last_ship.reset_points();
-            }
-        }
-    }
-}
-
-/// Moves the last ship right if possible
-fn move_ship_right(ships: &mut [Ship]) {
-    if let Some(last_ship) = ships.last() {
-        if Ship::can_exist(
-            &last_ship.kind,
-            last_ship.x + 1,
-            last_ship.y,
-            &last_ship.direction,
-        ) {
-            if let Some(last_ship) = ships.last_mut() {
-                last_ship.x += 1;
-                last_ship.reset_points();
-            }
-        }
-    }
 }

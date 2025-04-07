@@ -135,6 +135,80 @@ impl Ship {
     pub fn is_sunk(&self) -> bool {
         self.hit_points.len() >= self.kind.get_len() as usize
     }
+    
+    /// Rotates the last ship clockwise if possible
+pub fn rotate(&mut self) {
+        let new_direction = match self.direction {
+            ShipDirection::Down => ShipDirection::Left,
+            ShipDirection::Left => ShipDirection::Up,
+            ShipDirection::Up => ShipDirection::Right,
+            ShipDirection::Right => ShipDirection::Down,
+        };
+        if Ship::can_exist(&self.kind, self.x, self.y, &new_direction) {
+                self.direction = new_direction;
+                self.reset_points();
+        }
+    }
+
+/// Moves the last ship up if possible
+pub fn move_up(&mut self) {
+        if self.y == 0 {
+            return;
+        }
+        if Ship::can_exist(
+            &self.kind,
+            self.x,
+            self.y - 1,
+            &self.direction,
+        ) {
+                self.y -= 1;
+                self.reset_points();
+    }
+}
+
+/// Moves the last ship down if possible
+pub fn move_down(&mut self) {
+        if Ship::can_exist(
+            &self.kind,
+            self.x,
+            self.y + 1,
+            &self.direction,
+        ) {
+                self.y += 1;
+                self.reset_points();
+    }
+}
+
+/// Moves the last ship left if possible
+pub fn move_left(&mut self) {
+        if self.x == 0 {
+            return;
+        }
+        if Ship::can_exist(
+            &self.kind,
+            self.x - 1,
+            self.y,
+            &self.direction,
+        ) {
+        
+                self.x -= 1;
+                self.reset_points();
+        }
+}
+
+/// Moves the last ship right if possible
+pub fn move_right(&mut self) {
+        if Ship::can_exist(
+            &self.kind,
+            self.x + 1,
+            self.y,
+            &self.direction,
+        ) {
+                self.x += 1;
+                self.reset_points();
+      
+    }
+}
 }
 
 #[cfg(test)]
