@@ -50,7 +50,9 @@ pub struct Ship {
     pub y: u8,
     pub direction: ShipDirection,
     pub kind: ShipKind,
-    pub number_hits: u8,
+
+    pub points: Vec<Point>,
+    pub hit_points: Vec<Point>,
 }
 
 impl Ship {
@@ -62,16 +64,33 @@ impl Ship {
         direction: ShipDirection,
     ) -> Result<Self, &'static str> {
         if Self::can_exist(&kind, x, y, &direction) {
-            Ok(Self {
-                x,
-                y,
-                direction,
+            let mut ship = Self {     
+                x, y, direction,           
                 kind,
-                number_hits: 0,
-            })
+                points: vec![],
+                hit_points: vec![]
+            };
+            ship.reset_points();
+            Ok(ship)
         } else {
             Err("Out of bounds.")
         }
+    }
+
+    /// Resets the points based on x, y, and direction
+    pub fn reset_points(&mut self) {
+        if Self::can_exist(&self.kind, self.x, self.y, &self.direction) {
+            let length = self.kind.get_len() - 1; // Do not count the head
+        let (x_min, x_max, y_min, y_max) = match &self.direction {
+            ShipDirection::Down => (self.x, self.x, self.y - length, self.y),
+            ShipDirection::Up => (self.x, self.x, self.y, self.y + length),
+            ShipDirection::Left => (self.x, self.x + length, self.y, self.y),
+            ShipDirection::Right => (self.x - length, self.x, self.y, self.y),
+        };
+
+        self.points = (x_min..=x_max)
+            .flat_map(|x| (y_min..=y_max).map(|y| Point(x, y)).collect::<Vec<Point>>()).collect();
+    }
     }
 
     /// Check if a ship can be created from the parameters
@@ -93,38 +112,28 @@ impl Ship {
         true
     }
 
-    /// Get the points for where the ship is
-    pub fn get_points(&self) -> Vec<Point> {
-        let length = self.kind.get_len() - 1; // Do not count the head
-        let (x_min, x_max, y_min, y_max) = match &self.direction {
-            ShipDirection::Down => (self.x, self.x, self.y - length, self.y),
-            ShipDirection::Up => (self.x, self.x, self.y, self.y + length),
-            ShipDirection::Left => (self.x, self.x + length, self.y, self.y),
-            ShipDirection::Right => (self.x - length, self.x, self.y, self.y),
-        };
-
-        (x_min..=x_max)
-            .flat_map(|x| (y_min..=y_max).map(|y| Point(x, y)).collect::<Vec<Point>>())
-            .collect()
-    }
-
     /// Check weather two ships intercept
     pub fn does_intercept(&self, ship: &Ship) -> bool {
-        let other_ship_points = ship.get_points();
-        self.get_points()
+        self.points
             .iter()
-            .any(|point| other_ship_points.contains(point))
+            .any(|point| ship.points.contains(point))
     }
 
     /// Check weather the ship is hit
     pub fn is_hit_by(&self, point: &Point) -> bool {
-        self.get_points().contains(point)
+        self.points.contains(point)
     }
 
     /// Records a hit on a ship and returns weather the ship was sunk
-    pub fn hit(&mut self) -> bool {
-        self.number_hits += 1;
-        self.number_hits == self.kind.get_len()
+    pub fn hit(&mut self, point: Point) {
+        if self.is_hit_by(&point) {
+            self.hit_points.push(point);
+        }
+    }
+
+    /// Checks weather the ship is sunk
+    pub fn is_sunk(&self) -> bool {
+        self.hit_points.len() >= self.kind.get_len() as usize
     }
 }
 
@@ -174,14 +183,14 @@ mod test {
 
         // Real hits
         assert!(ship1.is_hit_by(&Point(3, 1)));
-        assert!(!ship1.hit());
+        assert!(!ship1.is_sunk());
         assert!(ship1.is_hit_by(&Point(3, 2)));
-        assert!(!ship1.hit());
+        assert!(!ship1.is_sunk());
         assert!(ship1.is_hit_by(&Point(3, 3)));
-        assert!(!ship1.hit());
+        assert!(!ship1.is_sunk());
         assert!(ship1.is_hit_by(&Point(3, 4)));
-        assert!(!ship1.hit());
+        assert!(!ship1.is_sunk());
         assert!(ship1.is_hit_by(&Point(3, 5)));
-        assert!(ship1.hit());
+        assert!(ship1.is_sunk());
     }
 }

@@ -125,26 +125,26 @@ pub fn render(term: &Term, ships: &[Ship]) {
     } else {
         0
     }; // Avoid overflow error
-    let ship_points: Vec<Point> = ships
+    let ship_points: Vec<&Point> = ships
         .iter()
         .take(last_ship_index)
-        .flat_map(|ship| ship.get_points())
+        .flat_map(|ship| &ship.points)
         .collect();
-    let last_ship_points: Vec<Point> = if let Some(last_ship) = ships.last() {
-        last_ship.get_points()
+    let last_ship_points: &Vec<Point> = if let Some(last_ship) = ships.last() {
+        &last_ship.points
     } else {
-        vec![]
+        &vec![]
     };
     let coloured_grid: Vec<Vec<Style>> = (0..10)
         .map(|i| {
             (0..10)
                 .map(|j| {
-                    if last_ship_points.contains(&Point(j, i)) && ship_points.contains(&Point(j, i))
+                    if last_ship_points.contains(&&Point(j, i)) && ship_points.contains(&&Point(j, i))
                     {
                         Style::new().red()
                     } else if last_ship_points.contains(&Point(j, i)) {
                         Style::new().green()
-                    } else if ship_points.contains(&Point(j, i)) {
+                    } else if ship_points.contains(&&Point(j, i)) {
                         if (i + j) % 2 == 0 {
                             Style::new().black().bright()
                         } else {
@@ -176,6 +176,7 @@ fn rotate_ship(ships: &mut [Ship]) {
         if Ship::can_exist(&last_ship.kind, last_ship.x, last_ship.y, &new_direction) {
             if let Some(last_ship) = ships.last_mut() {
                 last_ship.direction = new_direction;
+                last_ship.reset_points();
             }
         }
     }
@@ -194,7 +195,8 @@ fn move_ship_up(ships: &mut [Ship]) {
             &last_ship.direction,
         ) {
             if let Some(last_ship) = ships.last_mut() {
-                last_ship.y -= 1
+                last_ship.y -= 1;
+                last_ship.reset_points();
             }
         }
     }
@@ -210,7 +212,8 @@ fn move_ship_down(ships: &mut [Ship]) {
             &last_ship.direction,
         ) {
             if let Some(last_ship) = ships.last_mut() {
-                last_ship.y += 1
+                last_ship.y += 1;
+                last_ship.reset_points();
             }
         }
     }
@@ -229,7 +232,8 @@ fn move_ship_left(ships: &mut [Ship]) {
             &last_ship.direction,
         ) {
             if let Some(last_ship) = ships.last_mut() {
-                last_ship.x -= 1
+                last_ship.x -= 1;
+                last_ship.reset_points();
             }
         }
     }
@@ -245,7 +249,8 @@ fn move_ship_right(ships: &mut [Ship]) {
             &last_ship.direction,
         ) {
             if let Some(last_ship) = ships.last_mut() {
-                last_ship.x += 1
+                last_ship.x += 1;
+                last_ship.reset_points();
             }
         }
     }

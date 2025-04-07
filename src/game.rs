@@ -110,7 +110,8 @@ impl Game {
                     hit_ship.kind.get_name()
                 )
             };
-            if hit_ship.hit() {
+            hit_ship.hit(target);
+            if hit_ship.is_sunk() {
                 if is_player_board_hit {
                     hit_message += &format!(
                         "\n{} The Admiral sunk your {}.",
@@ -233,11 +234,10 @@ fn gen_bot_target(target_board: &GameBoard) -> Point {
                 GridState::Blank => possible_positions.push(Point(i as u8, j as u8)),
                 GridState::Hit => {
                     // Prioritize hitting near ships that are hit but not sunk
-                    let is_ship_floating = target_board.ships.iter().any(|ship| {
-                        ship.get_points().contains(&Point(i as u8, j as u8))
-                            && ship.number_hits != ship.kind.get_len()
-                    });
-                    if !is_ship_floating {
+                    let hit_ship = target_board.ships.iter().find(|ship| 
+                        ship.points.contains(&Point(i as u8, j as u8))
+                    ).expect("Ship should be found");
+                    if hit_ship.is_sunk() {
                         continue;
                     }
                     // Look Up
@@ -271,10 +271,10 @@ fn gen_bot_target(target_board: &GameBoard) -> Point {
 
 /// Generates a grid
 fn generate_grid(game_board: &GameBoard, show_ships: bool) -> String {
-    let ship_points: Vec<Point> = game_board
+    let ship_points: Vec<&Point> = game_board
         .ships
         .iter()
-        .flat_map(|ship| ship.get_points())
+        .flat_map(|ship| &ship.points)
         .collect();
     let coloured_grid: Vec<Vec<Style>> = (0..10)
         .map(|i| {
@@ -283,7 +283,7 @@ fn generate_grid(game_board: &GameBoard, show_ships: bool) -> String {
                     GridState::Miss => Style::new().white(),
                     GridState::Hit => Style::new().red(),
                     GridState::Blank => {
-                        if ship_points.contains(&Point(j as u8, i as u8)) && show_ships {
+                        if ship_points.contains(&&Point(j as u8, i as u8)) && show_ships {
                             if (i + j) % 2 == 0 {
                                 Style::new().black().bold()
                             } else {
