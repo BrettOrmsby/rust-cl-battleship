@@ -2,7 +2,7 @@ use crate::terminal_utils::print_center;
 
 use super::ship::{Point, Ship, ShipDirection, ShipKind};
 use super::terminal_utils::create_colored_grid;
-use console::{Key, Style, Term};
+use console::{style, Key, Style, Term};
 use rand::{self, Rng};
 #[derive(Clone, Copy, PartialEq)]
 pub enum GridState {
@@ -32,6 +32,7 @@ pub fn start() -> GameBoard {
     let term = Term::buffered_stdout();
     let mut ships: Vec<Ship> = vec![];
     render(&term, &ships);
+    term.write_line("\n");
     [
         ShipKind::Carrier,
         ShipKind::Battleship,
@@ -45,15 +46,17 @@ pub fn start() -> GameBoard {
         let ship = Ship::build(*ship_kind, 0, 0, ShipDirection::Up).unwrap();
         ships.push(ship);
         loop {
-            term.clear_last_lines(23);
+            term.clear_last_lines(25);
+            print_center(&term, &format!("{}", style("Set Up").bold()));
+            print_center(&term, &format!("Use your {} keys to move the ship, {} to rotate, and {} to set its position.", style("Arrow").bold(), style("Space").bold(), style("Enter").bold()));
             render(&term, &ships);
             let key = term.read_key();
             match key {
                 Ok(Key::Char(' ')) => ships.last_mut().unwrap().rotate(),
-                Ok(Key::ArrowUp) => ships.last_mut().unwrap().move_up(),
-                Ok(Key::ArrowDown) => ships.last_mut().unwrap().move_down(),
-                Ok(Key::ArrowLeft) => ships.last_mut().unwrap().move_left(),
-                Ok(Key::ArrowRight) => ships.last_mut().unwrap().move_right(),
+                Ok(Key::ArrowUp) | Ok(Key::Char('w'))|  Ok(Key::Char('W')) => ships.last_mut().unwrap().move_up(),
+                Ok(Key::ArrowDown) | Ok(Key::Char('s'))|  Ok(Key::Char('S')) => ships.last_mut().unwrap().move_down(),
+                Ok(Key::ArrowLeft)| Ok(Key::Char('a'))|  Ok(Key::Char('A')) => ships.last_mut().unwrap().move_left(),
+                Ok(Key::ArrowRight) | Ok(Key::Char('d'))|  Ok(Key::Char('D'))=> ships.last_mut().unwrap().move_right(),
                 Ok(Key::Enter) => {
                     if let Some(last_ship) = ships.last() {
                         let does_collide = ships.iter().any(|ship| {
@@ -69,7 +72,7 @@ pub fn start() -> GameBoard {
             }
         }
     });
-    term.clear_last_lines(23);
+    term.clear_last_lines(25);
     term.flush();
 
     GameBoard::build(ships)

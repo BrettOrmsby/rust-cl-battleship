@@ -62,7 +62,7 @@ impl Game {
     /// Render grids and messages
     fn render(&self, term: &Term) {
         let player_grid = generate_grid(&self.player_board, true);
-        let bot_grid = generate_grid(&self.bot_board, false);
+        let bot_grid = generate_grid(&self.bot_board, false || self.is_game_over);
         let grids = terminal_utils::join(bot_grid, player_grid, 2);
         let grid_width = 46;
         let grid_labels = format!(
@@ -224,7 +224,6 @@ fn get_target(term: &Term, target_board: &GameBoard) -> Point {
 }
 
 /// Randomly generate the target for the bot
-// TODO: prioritize ships with two spots hit to continue linearly
 fn gen_bot_target(target_board: &GameBoard) -> Point {
     let mut possible_positions: Vec<Point> = vec![];
     let mut recommended_positions: Vec<Point> = vec![];
@@ -234,6 +233,7 @@ fn gen_bot_target(target_board: &GameBoard) -> Point {
                 GridState::Blank => possible_positions.push(Point(i as u8, j as u8)),
                 GridState::Hit => {
                     // Prioritize hitting near ships that are hit but not sunk
+                    // If we have hit the same ship twice, then continue linearly
                     let hit_ship = target_board.ships.iter().find(|ship| 
                         ship.points.contains(&Point(i as u8, j as u8))
                     ).expect("Ship should be found");
@@ -242,19 +242,39 @@ fn gen_bot_target(target_board: &GameBoard) -> Point {
                     }
                     // Look Up
                     if j > 0 && target_board.board[j - 1][i] == GridState::Blank {
-                        recommended_positions.push(Point(i as u8, (j - 1) as u8));
+                        let up = Point(i as u8, (j - 1) as u8);
+                        // If down was hit and is the same ship, then we know up must be part of the ship
+                        if j < 9 && hit_ship.hit_points.contains(&Point( i as u8, (j + 1) as u8)) {
+                            return up
+                        }
+                        recommended_positions.push(up);
                     }
                     // Look Down
                     if j < 9 && target_board.board[j + 1][i] == GridState::Blank {
-                        recommended_positions.push(Point(i as u8, (j + 1) as u8));
+                        let down = Point(i as u8, (j + 1) as u8);
+                        // If up was hit and is the same ship, then we know down must be part of the ship
+                        if j > 0 && hit_ship.hit_points.contains(&Point( i as u8, (j - 1) as u8)) {
+                            return down
+                        }
+                        recommended_positions.push(down);
                     }
                     // Look Left
                     if i > 0 && target_board.board[j][i - 1] == GridState::Blank {
-                        recommended_positions.push(Point((i - 1) as u8, j as u8));
+                        let left = Point((i - 1) as u8, j as u8);
+                        // If right was hit and is the same ship, then we know left must be part of the ship
+                        if i < 9 && hit_ship.hit_points.contains(&Point((i+1) as u8, j as u8)) {
+                            return left;
+                        }
+                        recommended_positions.push(left);
                     }
                     // Look Right
                     if i < 9 && target_board.board[j][i + 1] == GridState::Blank {
-                        recommended_positions.push(Point((i + 1) as u8, j as u8));
+                        let right = Point((i + 1) as u8, j as u8);
+                        // If right was hit and is the same ship, then we know left must be part of the ship
+                        if i > 0 && hit_ship.hit_points.contains(&Point((i-1) as u8, j as u8)) {
+                            return right;
+                        }
+                        recommended_positions.push(right);
                     }
                 }
                 _ => (),
